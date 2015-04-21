@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+import sys
 import re
 
 
@@ -25,19 +26,33 @@ def findMatches(filename1, filename2):
 	kp_matches1 = []
 	kp_matches2 = []
 	des_matches = []
-
+	
 	for i in range(0, des1.shape[0]):
-		for j in range(0, des2.shape[0]): 
-			d = sum(abs(des1[i] - des2[j]))/128
-			if (d < 5):
-				kp_matches1.append(kp1[i].pt)
-				kp_matches2.append(kp2[j].pt)
-#				des_matches.append([des1[i], des2[j]])
-
+		best_match = sys.maxint 
+		bm_index = -1	
+		second_match = sys.maxint
+		sm_index = -1
+		for j in range(0, des2.shape[0]):
+			d = sum((des1[i] - des2[j])**2)
+			if (d < best_match):
+				second_match = best_match
+				sm_index = bm_index
+				best_match = d
+				bm_index = j 
+			elif (d < second_match):
+				second_match = d
+				sm_index = j
+		if (best_match / second_match) < 0.8:
+			kp_matches1.append(kp1[i].pt)
+			kp_matches2.append(kp2[bm_index].pt)
+	print kp_matches1
+	print kp_matches2
 	return kp_matches1, kp_matches2, des_matches
 
 def showMatches(matches1, matches2, image1, image2):
-
+	print "matches1"
+	print matches1
+	print mathces2
 	rows1 = image1.shape[0]        
 	rows2 = image2.shape[0]
 	print rows1
@@ -50,7 +65,7 @@ def showMatches(matches1, matches2, image1, image2):
 	return np.concatenate((image1, image2), axis = 1)	
 
 #def affineMatches:
-#
+
 #def alignImages:
 #
 #def affineMatches_homography:
@@ -63,12 +78,11 @@ if __name__ == "__main__":
 	img2 = cv2.imread('StopSign2.jpg')
 
 	kps1, kps2, des_matches = findMatches('StopSign1.jpg', 'StopSign2.jpg')
-	result_img12 = showMatches(kps1, kps2, img1, img2)
-	cv2.imwrite('result12.png', result_img12)
+
+#	result_img12 = showMatches(kps1, kps2, img1, img2)
+#	cv2.imwrite('result12.png', result_img12)
 
 #	for kp in kps12:
 #		img[kp[0]][kp[1]] = [0 ,255, 0]
 
-	img[kps12] = [0 ,255, 0] 	
-	cv2.imwrite('img12.png', img)
 	
