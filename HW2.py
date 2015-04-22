@@ -7,6 +7,7 @@ from scipy.linalg import *
 from scipy.special import *
 from random import choice
 from scipy import linalg
+
 def ransac(points_list, iters = 100 , error = 15, good_model_num = 11):
 	'''
 		This function uses RANSAC algorithm to estimate the
@@ -194,6 +195,7 @@ def affineMatches(matches, image1, image2) :
 	matches_affine = []
 	matches_affine1 = []
 	matches_affine2 = []
+	err = 0
 
 	for mat in matches:
 		vector1 = list(mat[0])
@@ -206,11 +208,11 @@ def affineMatches(matches, image1, image2) :
 			matches_affine1.append((vector1[0], vector1[1]))
 			matches_affine2.append((vector2[0], vector2[1]))
 			matches_affine.append([(vector1[0], vector1[1]), (vector2[0], vector2[1])]) 
-			err += sqrt((vector2_est[0] - vector2[0])**2 + (vector1_est[1] - vector1[1])**2)
+			err += sqrt((vector2_est[0] - vector2[0])**2 + (vector2_est[1] - vector2[1])**2)
 
 	result_image = showMatches(matches_affine1, matches_affine2, image1, image2)	
 
-	return result_image, H, err / len(mathces) 
+	return result_image, H, err / len(matches) 
 
 def alignImages(img1,img2,transformation):
 	merged_img = np.zeros(img2.shape)
