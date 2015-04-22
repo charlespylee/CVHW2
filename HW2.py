@@ -90,8 +90,8 @@ def Haffine_from_points(fp,tp, matrix = 'affine'):
 
 	if fp.shape != tp.shape:
 		raise RuntimeError, 'number of points do not match'
-	print 'fp'
-	print 'tp'
+	print 'fp\n',fp[:2]
+	print 'tp\n',tp
 
 	#condition points
 	#-from points-
@@ -240,9 +240,9 @@ def alignImages(img1,img2,transformation):
 if __name__ == "__main__":
 
 	img1 = cv2.imread('StopSign1.jpg')
-	img2 = cv2.imread('StopSign3.jpg')
+	img2 = cv2.imread('StopSign4.jpg')
 
-	kps1, kps2, kps, des_matches = findMatches('StopSign1.jpg', 'StopSign3.jpg')
+	kps1, kps2, kps, des_matches = findMatches('StopSign1.jpg', 'StopSign4.jpg')
 
 	result_img12 = showMatches(kps1, kps2, img1, img2)
 	cv2.imwrite('result12.png', result_img12)
