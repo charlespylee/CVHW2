@@ -8,7 +8,7 @@ from scipy.special import *
 from random import choice
 from scipy import linalg
 
-def ransac(points_list, iters = 100 , error = 15, good_model_num = 11):
+def ransac(points_list, trans_type = 'affine', iters = 100, error = 15, good_model_num = 11):
 	'''
 		This function uses RANSAC algorithm to estimate the
 		shift and rotation between the two given images
@@ -47,8 +47,10 @@ def ransac(points_list, iters = 100 , error = 15, good_model_num = 11):
 			
 		fp = array([fp0, fp1, fp2])
 		tp = array([tp0, tp1, tp2])
-		
-		H = Haffine_from_points(fp, tp)
+		if (trans_type == 'affine'):		
+			H = Haffine_from_points(fp, tp)
+		else:
+			H = Haffine_from_points(fp, tp, 'Homography')
 							
 		# Check if the other points fit this model
 		for p in points_list_temp:
@@ -84,15 +86,17 @@ def ransac(points_list, iters = 100 , error = 15, good_model_num = 11):
 	print consensus_set	
 	return model_H
 
-def Haffine_from_points(fp,tp, matrix = 'affine'):
+def Haffine_from_points(fp, tp, trans_type = 'affine'):
 	""" find H, affine transformation, such that 
 		tp is affine transf of fp"""
 
 	if fp.shape != tp.shape:
 		raise RuntimeError, 'number of points do not match'
 	print 'fp'
+	print fp
 	print 'tp'
-
+	print tp
+ 
 	#condition points
 	#-from points-
 	m = mean(fp[:2], axis=1)
@@ -109,21 +113,41 @@ def Haffine_from_points(fp,tp, matrix = 'affine'):
 	C2[1][2] = -m[1]/maxstd
 	tp_cond = dot(C2,tp)
 
-	#conditioned points have mean zero, so translation is zero
-	A = concatenate((fp_cond[:2],tp_cond[:2]), axis=0)
-	U,S,V = linalg.svd(A.T)
+	if (trans_type == 'affine'):
+	
+		#conditioned points have mean zero, so translation is zero
+		A = concatenate((fp_cond[:2],tp_cond[:2]), axis=0)
+		U,S,V = linalg.svd(A.T)
+	
+		#create B and C matrices as Hartley-Zisserman (2:nd ed) p 130.
+		tmp = V[:2].T
+		B = tmp[:2]
+		C = tmp[2:4]
+	
+		tmp2 = concatenate((dot(C,linalg.pinv(B)),zeros((2,1))), axis=1) 
+		H = vstack((tmp2,[0,0,1]))
+	
+		#decondition
+		H = dot(linalg.inv(C2),dot(H,C1))
 
-	#create B and C matrices as Hartley-Zisserman (2:nd ed) p 130.
-	tmp = V[:2].T
-	B = tmp[:2]
-	C = tmp[2:4]
-
-	tmp2 = concatenate((dot(C,linalg.pinv(B)),zeros((2,1))), axis=1) 
-	H = vstack((tmp2,[0,0,1]))
-
-	#decondition
-	H = dot(linalg.inv(C2),dot(H,C1))
-
+	else:
+		# create matrix for linear method, 2 rows for each correspondence pair
+	    nbr_correspondences = fp.shape[1]
+	    A = zeros((2*nbr_correspondences,9))
+	    for i in range(nbr_correspondences):        
+	        A[2*i] = [-fp[0][i],-fp[1][i],-1,0,0,0,
+	                    tp[0][i]*fp[0][i],tp[0][i]*fp[1][i],tp[0][i]]
+	        A[2*i+1] = [0,0,0,-fp[0][i],-fp[1][i],-1,
+	                    tp[1][i]*fp[0][i],tp[1][i]*fp[1][i],tp[1][i]]
+	    
+	    U,S,V = linalg.svd(A)
+	    H = V[8].reshape((3,3))    
+	    
+	    # decondition
+	    H = dot(linalg.inv(C2),dot(H,C1))
+	    
+	    # normalize and return
+	
 	return H / H[2][2]
 
 def findInterestPoints(filename):
@@ -191,9 +215,9 @@ def showMatches(matches1, matches2, image1, image2):
 	
 	return res
 
-def affineMatches(matches, image1, image2) :
+def affineMatches(matches, image1, image2, trans_type) :
 	# print matches
-	H = ransac(matches)
+	H = ransac(matches, trans_type)
 	matches_affine = []
 	matches_affine1 = []
 	matches_affine2 = []
@@ -247,9 +271,14 @@ if __name__ == "__main__":
 	result_img12 = showMatches(kps1, kps2, img1, img2)
 	cv2.imwrite('result12.png', result_img12)
 	
-	result_img12_affine, H, avgError = affineMatches(kps, img1, img2)
+	result_img12_affine, A, avgError = affineMatches(kps, img1, img2, 'affine')
 	cv2.imwrite('result12_affine.png', result_img12_affine)
+
+	# Q7	
 	print "Average Error" + str(avgError)
+
+#	result_img12_Homography, H, avgError = affineMatches(kps, img1, img2, 'Homography')
+#	cv2.imwrite('result12_homography.png', result_img12_Homography)
 
 	alignImages(img1,img2,H)
 	
