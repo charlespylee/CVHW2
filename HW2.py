@@ -45,12 +45,16 @@ def findMatches(filename1, filename2):
 		if (best_match / second_match) < 0.8:
 			kp_matches1.append(kp1[i].pt)
 			kp_matches2.append(kp2[bm_index].pt)
-	print kp_matches1
-	print kp_matches2
 	return kp_matches1, kp_matches2, des_matches
 
 def showMatches(matches1, matches2, image1, image2):
+<<<<<<< HEAD
 	
+=======
+	# print "matches1"
+	# print matches1
+	# print matches2
+>>>>>>> 1203664a8deec9633bfc1c53352872e5d52383dc
 	rows1 = image1.shape[0]        
 	rows2 = image2.shape[0]
 	col1 = image1.shape[1]
@@ -63,6 +67,13 @@ def showMatches(matches1, matches2, image1, image2):
 
 	res = np.concatenate((image1, image2), axis = 1)
 	print len(matches1),len(matches2)
+<<<<<<< HEAD
+=======
+	for i in range(len(matches1)):
+		cv2.line(res,( int(matches1[i][0]),int(matches1[i][1])),(col1+int(matches2[i][0]),int(matches2[i][1])),(0,255,0),1)
+	
+	return res
+>>>>>>> 1203664a8deec9633bfc1c53352872e5d52383dc
 
 	for i in range(len(matches1)):
 		cv2.line(res,( int(matches1[i][0]),int(matches1[i][1])),(col1+int(matches2[i][0]),int(matches2[i][1])),(0,255,0),1)
@@ -85,8 +96,8 @@ if __name__ == "__main__":
 
 	kps1, kps2, des_matches = findMatches('StopSign1.jpg', 'StopSign2.jpg')
 
-#	result_img12 = showMatches(kps1, kps2, img1, img2)
-#	cv2.imwrite('result12.png', result_img12)
+	result_img12 = showMatches(kps1, kps2, img1, img2)
+	cv2.imwrite('result12.png', result_img12)
 
 #	for kp in kps12:
 #		img[kp[0]][kp[1]] = [0 ,255, 0]
