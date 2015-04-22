@@ -50,22 +50,28 @@ def findMatches(filename1, filename2):
 	return kp_matches1, kp_matches2, des_matches
 
 def showMatches(matches1, matches2, image1, image2):
-	print "matches1"
-	print matches1
-	print mathces2
+	
 	rows1 = image1.shape[0]        
 	rows2 = image2.shape[0]
-	print rows1
-	print rows2 
+	col1 = image1.shape[1]
+	# print rows1
+	# print rows2 
 	if rows1 < rows2:
-		image1 = np.concatenate((image1, np.zeros((rows2 - rows1, image1.shape[1]))), axis = 0)
+		image1 = np.concatenate((image1, np.zeros((rows2 - rows1, image1.shape[1],3))), axis = 0)
 	else:
-		image2 = np.concatenate((image2, np.zeros((rows1 - rows2, image2.shape[1]))), axis = 0)
-	        
-	return np.concatenate((image1, image2), axis = 1)	
+		image2 = np.concatenate((image2, np.zeros((rows1 - rows2, image2.shape[1],3))), axis = 0)
 
-#def affineMatches:
+	res = np.concatenate((image1, image2), axis = 1)
+	print len(matches1),len(matches2)
 
+	for i in range(len(matches1)):
+		cv2.line(res,( int(matches1[i][0]),int(matches1[i][1])),(col1+int(matches2[i][0]),int(matches2[i][1])),(0,255,0),1)
+	
+	return res
+
+def affineMatches:
+
+	
 #def alignImages:
 #
 #def affineMatches_homography:
