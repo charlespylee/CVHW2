@@ -7,6 +7,7 @@ from scipy.linalg import *
 from scipy.special import *
 from random import choice
 from scipy import linalg
+
 def ransac(points_list, iters = 100 , error = 15, good_model_num = 11):
 	'''
 		This function uses RANSAC algorithm to estimate the
@@ -194,25 +195,24 @@ def affineMatches(matches, image1, image2) :
 	matches_affine = []
 	matches_affine1 = []
 	matches_affine2 = []
+	err = 0
 
 	for mat in matches:
 		vector1 = list(mat[0])
 		vector2 = list(mat[1])
 		vector1.append(1)
 		vector2_est = np.dot(H, vector1)
-		# print "vector1"
-		# print vector1
-		# print "vector2"
-		# print vector2
+
 		if (((1-vector2_est[0]/vector2[0]) ** 2 + (1-vector2_est[1]/vector2[1]) ** 2 ) < 0.00072):
 		# if abs(vector2_est[0]-vector2[0]) + abs(vector2_est[1]-vector2[1]) < 50:
 			matches_affine1.append((vector1[0], vector1[1]))
 			matches_affine2.append((vector2[0], vector2[1]))
-			matches_affine.append([(vector1[0], vector1[1]),(vector2[0], vector2[1])]) 
+			matches_affine.append([(vector1[0], vector1[1]), (vector2[0], vector2[1])]) 
+			err += sqrt((vector2_est[0] - vector2[0])**2 + (vector2_est[1] - vector2[1])**2)
 
 	result_image = showMatches(matches_affine1, matches_affine2, image1, image2)	
 
-	return result_image, H
+	return result_image, H, err / len(matches) 
 
 def alignImages(img1,img2,transformation):
 	merged_img = np.zeros(img2.shape)
@@ -228,10 +228,11 @@ def alignImages(img1,img2,transformation):
 		for j in range(img2.shape[1]):
 			merged_img[i][j][0] = img2[i][j][0]
 	cv2.imwrite('merged_img.jpg',merged_img)
-#
 #def affineMatches_homography:
 #
 #def alignImages_homography:
+
+
 
 if __name__ == "__main__":
 
@@ -242,9 +243,10 @@ if __name__ == "__main__":
 
 	result_img12 = showMatches(kps1, kps2, img1, img2)
 	cv2.imwrite('result12.png', result_img12)
-
-	result_img12_affine, H = affineMatches(kps, img1, img2)
+	
+	result_img12_affine, H, avgError = affineMatches(kps, img1, img2)
 	cv2.imwrite('result12_affine.png', result_img12_affine)
+	print "Average Error" + str(avgError)
 
 	alignImages(img1,img2,H)
 
