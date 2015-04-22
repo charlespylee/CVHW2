@@ -277,8 +277,8 @@ if __name__ == "__main__":
 	# Q7	
 	print "Average Error" + str(avgError)
 
-#	result_img12_Homography, H, avgError = affineMatches(kps, img1, img2, 'Homography')
-#	cv2.imwrite('result12_homography.png', result_img12_Homography)
+	result_img12_Homography, H, avgError = affineMatches(kps, img1, img2, 'Homography')
+	cv2.imwrite('result12_homography.png', result_img12_Homography)
 
 	alignImages(img1,img2,H)
 	
