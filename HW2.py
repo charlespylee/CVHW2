@@ -7,121 +7,120 @@ from scipy.linalg import *
 from scipy.special import *
 from random import choice
 from scipy import linalg
+def ransac(points_list, iters = 100 , error = 15, good_model_num = 11):
+	'''
+		This function uses RANSAC algorithm to estimate the
+		shift and rotation between the two given images
+	'''
+	
+	model_error = 255
+	model_H = None
 
-def ransac(points_list, iters = 10 , error = 10, good_model_num = 11):
-    '''
-        This function uses RANSAC algorithm to estimate the
-        shift and rotation between the two given images
-    '''
-    
-    model_error = 255
-    model_H = None
+	for i in range(iters):
+		consensus_set = []
+		points_list_temp = copy(points_list).tolist()
+		# Randomly select 3 points
+		for j in range(3):
+			temp = choice(points_list_temp)
+			consensus_set.append(temp)
+			points_list_temp.remove(temp)
+		
+		# Calculate the homography matrix from the 3 points
+		
+		fp0 = []
+		fp1 = []
+		fp2 = []
+		
+		tp0 = []
+		tp1 = []
+		tp2 = []
+		for line in consensus_set:
+		
+			fp0.append(line[0][0])
+			fp1.append(line[0][1])
+			fp2.append(1)
+			
+			tp0.append(line[1][0])
+			tp1.append(line[1][1])
+			tp2.append(1)
+			
+		fp = array([fp0, fp1, fp2])
+		tp = array([tp0, tp1, tp2])
+		
+		H = Haffine_from_points(fp, tp)
+							
+		# Check if the other points fit this model
+		for p in points_list_temp:
+			x1, y1 = p[0]
+			x2, y2 = p[1]
 
-    for i in range(iters):
-        consensus_set = []
-        points_list_temp = copy(points_list).tolist()
-        # Randomly select 3 points
-        for j in range(3):
-            temp = choice(points_list_temp)
-            consensus_set.append(temp)
-            points_list_temp.remove(temp)
-        
-        # Calculate the homography matrix from the 3 points
-        
-        fp0 = []
-        fp1 = []
-        fp2 = []
-        
-        tp0 = []
-        tp1 = []
-        tp2 = []
-        for line in consensus_set:
-        
-            fp0.append(line[0][0])
-            fp1.append(line[0][1])
-            fp2.append(1)
-            
-            tp0.append(line[1][0])
-            tp1.append(line[1][1])
-            tp2.append(1)
-            
-        fp = array([fp0, fp1, fp2])
-        tp = array([tp0, tp1, tp2])
-        
-        H = Haffine_from_points(fp, tp)
-                            
-        # Check if the other points fit this model
-        for p in points_list_temp:
-            x1, y1 = p[0]
-            x2, y2 = p[1]
+			A = array([x1, y1, 1]).reshape(3,1)
+			B = array([x2, y2, 1]).reshape(3,1)
+			
+			out = B - dot(H, A)
+			dist_err = hypot(out[0][0], out[1][0])
+			if dist_err < error:
+				consensus_set.append(p)			
+			
 
-            A = array([x1, y1, 1]).reshape(3,1)
-            B = array([x2, y2, 1]).reshape(3,1)
-            
-            out = B - dot(H, A)
-            dist_err = hypot(out[0][0], out[1][0])
-            if dist_err < error:
-                consensus_set.append(p)            
-            
-
-        # Check how well is our speculated model
-        if len(consensus_set) >= good_model_num:
-            dists = []
-            for p in consensus_set:
-                x0, y0 = p[0]
-                x1, y1 = p[1]
-                
-                A = array([x0, y0, 1]).reshape(3,1)
-                B = array([x1, y1, 1]).reshape(3,1)
-                
-                out = B - dot(H, A)
-                dist_err = hypot(out[0][0], out[1][0])
-                dists.append(dist_err)
-            if (max(dists) < error) and (max(dists) < model_error):
-                model_error = max(dists)
-                model_H = H
-                        
-    return model_H
+		# Check how well is our speculated model
+		if len(consensus_set) >= good_model_num:
+			dists = []
+			for p in consensus_set:
+				x0, y0 = p[0]
+				x1, y1 = p[1]
+				
+				A = array([x0, y0, 1]).reshape(3,1)
+				B = array([x1, y1, 1]).reshape(3,1)
+				
+				out = B - dot(H, A)
+				dist_err = hypot(out[0][0], out[1][0])
+				dists.append(dist_err)
+			if (max(dists) < error) and (max(dists) < model_error):
+				model_error = max(dists)
+				model_H = H
+						
+	return model_H
 
 def Haffine_from_points(fp,tp):
-    """ find H, affine transformation, such that 
-        tp is affine transf of fp"""
+	""" find H, affine transformation, such that 
+		tp is affine transf of fp"""
 
-    if fp.shape != tp.shape:
-        raise RuntimeError, 'number of points do not match'
+	if fp.shape != tp.shape:
+		raise RuntimeError, 'number of points do not match'
 
-    #condition points
-    #-from points-
-    m = mean(fp[:2], axis=1)
-    maxstd = max(std(fp[:2], axis=1))
-    C1 = diag([1/maxstd, 1/maxstd, 1]) 
-    C1[0][2] = -m[0]/maxstd
-    C1[1][2] = -m[1]/maxstd
-    fp_cond = dot(C1,fp)
+	#condition points
+	#-from points-
+	m = mean(fp[:2], axis=1)
+	maxstd = max(std(fp[:2], axis=1))
+	C1 = diag([1/maxstd, 1/maxstd, 1]) 
+	C1[0][2] = -m[0]/maxstd
+	C1[1][2] = -m[1]/maxstd
+	fp_cond = dot(C1,fp)
 
-    #-to points-
-    m = mean(tp[:2], axis=1)
-    C2 = C1.copy() #must use same scaling for both point sets
-    C2[0][2] = -m[0]/maxstd
-    C2[1][2] = -m[1]/maxstd
-    tp_cond = dot(C2,tp)
+	#-to points-
+	m = mean(tp[:2], axis=1)
+	C2 = C1.copy() #must use same scaling for both point sets
+	C2[0][2] = -m[0]/maxstd
+	C2[1][2] = -m[1]/maxstd
+	tp_cond = dot(C2,tp)
 
-    #conditioned points have mean zero, so translation is zero
-    A = concatenate((fp_cond[:2],tp_cond[:2]), axis=0)
-    U,S,V = linalg.svd(A.T)
+	#conditioned points have mean zero, so translation is zero
+	A = concatenate((fp_cond[:2],tp_cond[:2]), axis=0)
+	U,S,V = linalg.svd(A.T)
 
-    #create B and C matrices as Hartley-Zisserman (2:nd ed) p 130.
-    tmp = V[:2].T
-    B = tmp[:2]
-    C = tmp[2:4]
+	#create B and C matrices as Hartley-Zisserman (2:nd ed) p 130.
+	tmp = V[:2].T
+	B = tmp[:2]
+	C = tmp[2:4]
 
-    tmp2 = concatenate((dot(C,linalg.pinv(B)),zeros((2,1))), axis=1) 
-    H = vstack((tmp2,[0,0,1]))
+	tmp2 = concatenate((dot(C,linalg.pinv(B)),zeros((2,1))), axis=1) 
+	H = vstack((tmp2,[0,0,1]))
 
-    #decondition
-    H = dot(linalg.inv(C2),dot(H,C1))
+	#decondition
+	H = dot(linalg.inv(C2),dot(H,C1))
 
-    return H / H[2][2]
+	return H / H[2][2]
 
 def findInterestPoints(filename):
 	keynames = re.split(r'\.', filename)
@@ -167,13 +166,12 @@ def findMatches(filename1, filename2):
 			kp_matches2.append(kp2[bm_index].pt)
 			kp_matches.append([kp1[i].pt, kp2[bm_index].pt])
 
-	print kp_matches
+	# print kp_matches
 	
 	return kp_matches1, kp_matches2, kp_matches, des_matches
 
 def showMatches(matches1, matches2, image1, image2):
-	
-	rows1 = image1.shape[0]        
+	rows1 = image1.shape[0]		
 	rows2 = image2.shape[0]
 	col1 = image1.shape[1]
 	
@@ -184,7 +182,6 @@ def showMatches(matches1, matches2, image1, image2):
 
 	res = np.concatenate((image1, image2), axis = 1)
 	print len(matches1),len(matches2)
-
 	for i in range(len(matches1)):
 		cv2.line(res,( int(matches1[i][0]),int(matches1[i][1])),(col1+int(matches2[i][0]),int(matches2[i][1])),(0,255,0),1)
 	
@@ -192,7 +189,7 @@ def showMatches(matches1, matches2, image1, image2):
 
 
 def affineMatches(matches, image1, image2) :
-	print matches
+	# print matches
 	H = ransac(matches)
 	matches_affine = []
 	matches_affine1 = []
@@ -203,13 +200,9 @@ def affineMatches(matches, image1, image2) :
 		vector2 = list(mat[1])
 		vector1.append(1)
 		vector2_est = np.dot(H, vector1)
-		err = []
-		print "vector1"
-		print vector1
-		print "vector2"
-		print vector2
-		if ((vector2_est[0] / vector2[0] + vector2_est[1] / vector2[1]) > 1.99):
-			
+
+		if (((1-vector2_est[0]/vector2[0]) ** 2 + (1-vector2_est[1]/vector2[1]) ** 2 ) < 0.00072):
+		# if abs(vector2_est[0]-vector2[0]) + abs(vector2_est[1]-vector2[1]) < 50:
 			matches_affine1.append((vector1[0], vector1[1]))
 			matches_affine2.append((vector2[0], vector2[1]))
 			matches_affine.append([(vector1[0], vector1[1]), (vector2[0], vector2[1])]) 
@@ -219,8 +212,20 @@ def affineMatches(matches, image1, image2) :
 
 	return result_image, H, err / len(mathces) 
 
-#def alignImages:
-#		
+def alignImages(img1,img2,transformation):
+	merged_img = np.zeros(img2.shape)
+	for i in range(img1.shape[0]):
+		for j in range(img1.shape[1]):
+			original = [i,j,1]
+			projected = np.dot(transformation, original)
+			if (projected[0]<=img2.shape[0] and projected[1]<=img2.shape[1]):
+				merged_img[int(projected[0])][int(projected[1])] = img1[i][j]
+				merged_img[int(projected[0])][int(projected[1])][0] = 0
+	cv2.imwrite('warped_img.jpg',merged_img)
+	for i in range(img2.shape[0]):
+		for j in range(img2.shape[1]):
+			merged_img[i][j][0] = img2[i][j][0]
+	cv2.imwrite('merged_img.jpg',merged_img)
 #def affineMatches_homography:
 #
 #def alignImages_homography:
@@ -230,9 +235,9 @@ def affineMatches(matches, image1, image2) :
 if __name__ == "__main__":
 
 	img1 = cv2.imread('StopSign1.jpg')
-	img2 = cv2.imread('StopSign2.jpg')
+	img2 = cv2.imread('StopSign3.jpg')
 
-	kps1, kps2, kps, des_matches = findMatches('StopSign1.jpg', 'StopSign2.jpg')
+	kps1, kps2, kps, des_matches = findMatches('StopSign1.jpg', 'StopSign3.jpg')
 
 	result_img12 = showMatches(kps1, kps2, img1, img2)
 	cv2.imwrite('result12.png', result_img12)
@@ -240,6 +245,8 @@ if __name__ == "__main__":
 	result_img12_affine, H, avgError = affineMatches(kps, img1, img2)
 	cv2.imwrite('result12_affine.png', result_img12_affine)
 	print "Average Error" + str(avgError)
+
+	alignImages(img1,img2,H)
 
 #	for kp in kps12:
 #		img[kp[0]][kp[1]] = [0 ,255, 0]
