@@ -80,15 +80,18 @@ def ransac(points_list, iters = 100 , error = 15, good_model_num = 11):
 			if (max(dists) < error) and (max(dists) < model_error):
 				model_error = max(dists)
 				model_H = H
-						
+	print 'ransac consensus_set'
+	print consensus_set	
 	return model_H
 
-def Haffine_from_points(fp,tp):
+def Haffine_from_points(fp,tp, matrix = 'affine'):
 	""" find H, affine transformation, such that 
 		tp is affine transf of fp"""
 
 	if fp.shape != tp.shape:
 		raise RuntimeError, 'number of points do not match'
+	print 'fp'
+	print 'tp'
 
 	#condition points
 	#-from points-
@@ -188,7 +191,6 @@ def showMatches(matches1, matches2, image1, image2):
 	
 	return res
 
-
 def affineMatches(matches, image1, image2) :
 	# print matches
 	H = ransac(matches)
@@ -228,6 +230,7 @@ def alignImages(img1,img2,transformation):
 		for j in range(img2.shape[1]):
 			merged_img[i][j][0] = img2[i][j][0]
 	cv2.imwrite('merged_img.jpg',merged_img)
+
 #def affineMatches_homography:
 #
 #def alignImages_homography:
@@ -249,8 +252,4 @@ if __name__ == "__main__":
 	print "Average Error" + str(avgError)
 
 	alignImages(img1,img2,H)
-
-#	for kp in kps12:
-#		img[kp[0]][kp[1]] = [0 ,255, 0]
-
 	
