@@ -8,7 +8,7 @@ from scipy.special import *
 from random import choice
 from scipy import linalg
 
-def ransac(points_list, trans_type = 'affine', iters = 100, error = 50, good_model_num = 5):
+def ransac(points_list, trans_type = 'affine', iters = 200, error = 300, good_model_num = 10):
 	'''
 		This function uses RANSAC algorithm to estimate the
 		shift and rotation between the two given images
@@ -49,7 +49,6 @@ def ransac(points_list, trans_type = 'affine', iters = 100, error = 50, good_mod
 		tp = array([tp0, tp1, tp2])
 
 		H = Haffine_from_points(fp, tp ,trans_type)
-		print 'H\n',H
 
 		# Check if the other points fit this model
 		for p in points_list_temp:
@@ -79,15 +78,16 @@ def ransac(points_list, trans_type = 'affine', iters = 100, error = 50, good_mod
 				dist_err = hypot(out[0][0], out[1][0])
 				dists.append(dist_err)
 
-			this_error = max(dists)
-			if this_error <= min_error_sum:
-				print 'this_error\n',this_error
-				min_error_sum = this_error
+			if (max(dists) < error) and (max(dists) < model_error):
+				model_error = max(dists)
 				model_H = H
 
-			# if (max(dists) < error) and (max(dists) < model_error):
-			# 	model_error = max(dists)
-			# 	model_H = H
+#			this_error = max(dists)
+#			if this_error <= min_error_sum:
+#				print 'this_error\n',this_error
+#				min_error_sum = this_error
+#				model_H = H
+
 	print 'ransac consensus_set'
 	print consensus_set	
 	print 'model_H,\n',model_H
@@ -102,11 +102,6 @@ def Haffine_from_points(fp, tp, trans_type = 'affine'):
 	if fp.shape != tp.shape:
 		raise RuntimeError, 'number of points do not match'
 
-	print 'fp'
-	print fp
-	print 'tp'
-	print tp
- 
 	#condition points
 	#-from points-
 	m = mean(fp[:2], axis=1)
@@ -265,31 +260,27 @@ def alignImages(img1,img2,transformation,image_name):
 			merged_img[i][j][0] = img2[i][j][0]
 	cv2.imwrite(image_name,merged_img)
 
-#def affineMatches_homography:
-#
-#def alignImages_homography:
-
-
 
 if __name__ == "__main__":
 
 	img1 = cv2.imread('StopSign1.jpg')
-	img2 = cv2.imread('StopSign1.jpg')
+	img2 = cv2.imread('StopSign3.jpg')
 
-	kps1, kps2, kps, des_matches = findMatches('StopSign1.jpg', 'StopSign1.jpg')
+	kps1, kps2, kps, des_matches = findMatches('StopSign1.jpg', 'StopSign3.jpg')
 
 	result_img12 = showMatches(kps1, kps2, img1, img2)
-	cv2.imwrite('result12.png', result_img12)
+	cv2.imwrite('result13.png', result_img12)
 	
-	result_img12_affine, H_affine, avgError = affineMatches(kps, img1, img2, 'affine')
-	cv2.imwrite('result12_affine.png', result_img12_affine)
-	alignImages(img1,img2,H_affine,'merged_img_affine.jpg')
-	# Q7	
-	print "Average Error" + str(avgError)
+#	result_img12_affine, H_affine, avgError = affineMatches(kps, img1, img2, 'affine')
+#	cv2.imwrite('result14_affine.png', result_img12_affine)
+#	alignImages(img1,img2,H_affine,'merged_img_affine.jpg')
+
+#	# Q7	
+#	print "Average Error" + str(avgError)
 
 	result_img12_Homography, H_homo, avgError = affineMatches(kps, img1, img2, 'homography')
-
-	cv2.imwrite('result12_homography.png', result_img12_Homography)
-
+	cv2.imwrite('result13_homography.png', result_img12_Homography)
 	alignImages(img1,img2,H_homo,'merged_img_homo.jpg')
 	
+	# Q7	
+	print "Average Error" + str(avgError)
